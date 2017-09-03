@@ -5,7 +5,7 @@ Tinkering with open data
 
 Project 1: Education
 * .rdata to .csv conversion in education/rdata.ipynb
-* python readable data in gdrive
+* python readable data in [gdrive](https://drive.google.com/drive/folders/0B51bsxa_NT6Kb1pES0lnQU1xSGM)
 * basic plotting in education/visualization.ipynb
 
 ## Modules
