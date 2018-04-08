@@ -1,0 +1,153 @@
+---
+classoption: a4paper
+output: pdf_document
+---
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+# Set default options
+library(knitr)
+library(png)
+library(gridExtra)
+library(caTools)
+library(extrafont)
+loadfonts(quiet = T)
+opts_knit$set(root.dir = '..')
+opts_chunk$set(cache = TRUE)
+opts_chunk$set(echo = FALSE)
+opts_chunk$set(message = FALSE)
+opts_chunk$set(warning = FALSE)
+caption.gp <- gpar(fontfamily = "Open Sans",
+                   cex = 0.5)
+```
+
+# Capacity Analysis
+
+We perform an analysis of school capacity[^1] along three dimensions:
+
+* teacher capacity, as defined by the student-to-teacher ratio[^2],
+* room capacity, as defined by the student-to-room ratio[^3], and 
+* budgetary capacity, as defined by the amoung of maintenance and other operating expense (MOOE) budget per student[^4].
+
+[^1]: We remove schools with zero teachers, schools, or rooms (4,896 or 10.5%). Schools whose capacity figures are unavailable are likewise ignored (4 or <0.01%).
+[^2]: Computed for 2014 only, due to data availability. For this initial section, we take all kinds of teacher (mobile, SPED, regular, and instructor).
+[^3]: Computed for 2013 only, due to data availability. For this initial section, we assume full utilization of nonstandard and unused rooms.
+[^4]: Computed for 2015 only, due to data availability. We assume full disbursement of these amounts.
+
+## Exploratory data analysis
+
+We first determine centrality and dispersion by visually inspecting histograms of the computed capacity metrics. Take note the following definitions:
+
+```{r fig.height = 4}
+grid.raster(readPNG("Output/O19A - Capacity Metrics (Unlogged).png"))
+```
+
+The metrics in their raw form are skewed to the right, i.e. there are some extreme positive outlier schools in the dataset. Skewed distributions are difficult to inspect and may adversely impact the result of further statistical methods, such as cluster analysis. We remedy the variables by taking the base 10 logarithms of each of the variables - transforming the scale from additive to multiplicative.
+
+```{r fig.height = 4}
+grid.raster(readPNG("Output/O19B - Capacity Metrics (Logged).png"))
+```
+
+The logged capacity metrics are more symmetrical, with the exception of the MOOE Ratio. 
+
+From the histograms, we can already observe large disparities in school capacity. Student-to-teacher ratios can range from under 10 students per teacher to up to 100 students per teacher. Student-to-room ratios are similarly dispersed. While most schools budget lower than P1,000 per student, some schools can have up to P10,000 per student.
+
+We can further explore the average values and relative dispersion of capacity metrics through boxplots.
+
+```{r fig.height = 3.5}
+grid.raster(readPNG("Output/O5 - Capacity Metrics.png"))
+```
+
+The average student-to-teacher ratio hovers at around 37:1 for elementary and 32:1 for secondary. Compared to the OECD standard of 18:1, teacher capacity still pales in comparison, especially when smaller class sizes are linked better academic performance[^5].
+
+Room capacity is similar for elementary schools, at an average of 39 students per room. However, high school rooms are more packed, with an average of 48 students per rooom. Whereas teacher capacity is relatively better for high schools, room capacity is drastically worse. Still, one could argue that high school students may not require smaller class sizes as study habits may have already been inculcated.
+
+On average, elementary schools budget P639 per student, while secondary schools budget P1,103 per student. No direct comparisons can be made since differences in curricula and teaching talent required may be substantially different between elementary and secondary schools.
+
+It should be noted that introducing an additional shift in the class schedule effectively doubles teacher and room capacity. However, having different shifts, especially for students in the early stages of education, may not be ideal. Strategies to explore using the current capacity more efficiently are explored in later sections.
+
+[^5]: Although the question of whether smaller class sizes are better for students overall is still debated, the argument for larger class sizes generally emphasizes the impact on social skills, not academic performance.
+
+## Capacity clustering
+
+Cluster analysis, or clustering, is a statistical method of grouping objects with others of similar characteristics. In this case, we use cluster analysis to group schools along with others of similar capacity metrics. We can then determine a capacity building strategy for each specific cluster.
+
+### Exploratory Analysis
+
+We first determine the feasibility of clustering by examining the shape of the input space.
+
+```{r fig.height = 2.5}
+grid.arrange(
+  arrangeGrob(rasterGrob(readPNG("Output/O6A - Elementary Capacity Plot.png")),
+             rasterGrob(readPNG("Output/O6B - Secondary Capacity Plot.png")),
+             ncol = 2),
+  textGrob("Capacity metrics for elementary (left) and secondary (right) schools.",
+           gp = caption.gp),
+  ncol = 1, heights = c(0.95,0.05)
+)
+```
+
+For both elementary and secondary schools, the capacity metrics are gradiented, and there are no distinct clusters. However, this does not mean we cannot perform clustering in order to both size the areas of concern and produce a specific "capacity strategy"" per cluster.
+
+### Alogrithm Selection
+
+For this clustering exercise we consider two methods - agglomerative hierarchical clustering and divisive k-means clustering:
+
+* **Hierarchical clustering** is a method of clustering that "builds" up individual units based on their nearest neighbors. As the algorithm progresses, the clusters become larger and larger. Hierarchical clustering has the benefit of capturing more nuances in the input space.
+
+* **K-means clustering** is a method of clustering that divides up the space into k clusters, each defined by a centroid and the units assigned based on the nearest centroid. K-means clustering has the advantage of creating more definite boundaries between the clusters.
+
+After clustering, the results of the cluster analysis are as follows:
+
+```{r fig.height = 5}
+grid.arrange(
+  arrangeGrob(rasterGrob(readPNG("Output/O9A - Clustering Alternative 1 - Profiles.png")),
+              rasterGrob(readPNG("Output/O9B - Clustering Alternative 2 - Profiles.png")),
+              rasterGrob(readPNG("Output/O20A - Capacity Clusters (Hierarchical).png")),
+              rasterGrob(readPNG("Output/O20B - Capacity Clusters (K-means).png")),
+              ncol = 2),
+  textGrob("Capacity clusters for hierarchical (left) and k-means (right) clustering algorithms.",
+           gp = caption.gp),
+  ncol = 1, heights = c(0.95,0.05)
+)
+```
+
+Because the shape of the input space is relatively simple, we prefer direct k-means, as it produces clearer and more distinct clusters. This would not be the case if the shape of the input space was more complex.
+
+### Cluster Profiling
+
+We then perform the direct k-means algorithm separately on the elementary and secondary schools. In order to determine the ideal number of clusters, we plot the weighted sum of squares of the clusters that result at each level of \(k\).
+
+```{r fig.height = 4}
+grid.raster(readPNG("Output/O10 - WSS Plots.png"))
+```
+
+We set a cutoff of 10% or more in marginal reduction in the weighted sum of squares. Therefore for both elementary and secondary schools, the selected number of clusters is 6. We perform the k-means clustering at \(k = 6\) for both elementary and secondary schools with seed `721992`.
+
+```{r}
+library(pander)
+load("Data/D7 - Cluster Profiles.RData")
+panderOptions('table.split.table', 100000)
+schools_elem_profiles_formatted.dt$cluster.num <- NULL
+schools_seco_profiles_formatted.dt$cluster.num <- NULL
+pander(schools_elem_profiles_formatted.dt, 
+       caption = "Elementary Schools Cluster Profiles")
+pander(schools_seco_profiles_formatted.dt, 
+       caption = "Secondary Schools Cluster Profiles")
+```
+
+We then analyze the clusters by geographic distribution and comparative dropout rates.
+
+```{r fig.height = 10}
+grid.raster(readPNG("Output/O17A - Elementary Schools Capacity Dashboard.png"))
+```
+
+Elementary schools with the best capacity metrics are those found in the upper part of Luzon. However, it is also to be noted that these are also schools with very high dropout rates compared to the rest of the public school system. An analysis of dropout rates and capacities is performed in the next section. 
+
+Cash-strapped schools are located near the eastern seaboard of Luzon. Teachers are in short supply in Eastern Visayas and Palawan. Most surprisingly, however, schools in the "Left Behind" and "Falling Behind" category are within Metro Manila and its environs.
+
+```{r fig.height = 10}
+grid.raster(readPNG("Output/O17B - Secondary Schools Capacity Dashboard.png"))
+```
+
+While one might expect that the secondary school capacity situation mirrors that of elementary schools, the situation is quite different. Schools with the best and second capacity metrics, primarily in Central Luzon, Batanes, Dinagat Islands, and Siquijor, have dropout rates that are consistent with the national average. High school teachers are in short supply in Negros and Western Mindanao. Of course, Metro Manila, Bulacan, and Cavite schools round out the bottom, with severe shortages in rooms, teachers, and budget.
+

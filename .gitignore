@@ -1,6 +1,1 @@
-#ignore following files
-.ipynb_checkpoints
-.git
-
-education/education-analytics/
-education/*.csv
+*.csv
