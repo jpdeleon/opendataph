@@ -1,7 +1,3 @@
-Got it 👍 — here’s a **README.md** you can drop into your project folder. It explains both scrapers (Senate and House from `ldr.senate.gov.ph`, plus `congress.gov.ph` if you extend it), how to run them, and how the outputs are organized.
-
----
-
 # 📜 Philippine Legislative Bills Scraper
 
 This repository contains Python scripts to scrape **Philippine legislative data** from publicly available sources:
